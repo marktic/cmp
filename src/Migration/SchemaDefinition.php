@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Infrastructure\Migration;
+namespace Marktic\CMP\Migration;
 
 /**
  * Database schema definitions for Marktic CMP.

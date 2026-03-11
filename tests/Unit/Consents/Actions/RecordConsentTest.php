@@ -2,21 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Tests\Unit\Application;
+namespace Marktic\CMP\Tests\Unit\Consents\Actions;
 
 use InvalidArgumentException;
-use Marktic\CMP\Application\Service\ConsentService;
-use Marktic\CMP\Domain\Enum\ConsentSource;
-use Marktic\CMP\Domain\Enum\ConsentStatus;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Tenant;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentLogRepository;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentRepository;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\ConsentLogs\Repository\InMemoryConsentLogRepository;
+use Marktic\CMP\Consents\Actions\GetAllConsentsForSession;
+use Marktic\CMP\Consents\Actions\GetConsent;
+use Marktic\CMP\Consents\Actions\RecordConsent;
+use Marktic\CMP\Consents\Enums\ConsentSource;
+use Marktic\CMP\Consents\Enums\ConsentStatus;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Repository\InMemoryConsentRepository;
 use PHPUnit\Framework\TestCase;
 
-class ConsentServiceTest extends TestCase
+class RecordConsentTest extends TestCase
 {
-    private ConsentService $service;
+    private RecordConsent $action;
     private InMemoryConsentRepository $consentRepo;
     private InMemoryConsentLogRepository $logRepo;
     private Tenant $tenant;
@@ -25,7 +27,7 @@ class ConsentServiceTest extends TestCase
     {
         $this->consentRepo = new InMemoryConsentRepository();
         $this->logRepo = new InMemoryConsentLogRepository();
-        $this->service = new ConsentService($this->consentRepo, $this->logRepo);
+        $this->action = new RecordConsent($this->consentRepo, $this->logRepo);
         $this->tenant = new Tenant('organization', 10);
     }
 
@@ -35,7 +37,7 @@ class ConsentServiceTest extends TestCase
 
     public function testRecordNewConsent(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -50,7 +52,7 @@ class ConsentServiceTest extends TestCase
 
     public function testRecordMultipleConsentTypes(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -80,14 +82,14 @@ class ConsentServiceTest extends TestCase
 
     public function testUpdateExistingConsent(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
             consents: ['analytics_storage' => 'denied'],
         );
 
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -102,7 +104,7 @@ class ConsentServiceTest extends TestCase
 
     public function testNoAuditLogWhenConsentUnchanged(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -112,8 +114,7 @@ class ConsentServiceTest extends TestCase
         $logsAfterFirst = $this->logRepo->findAllBySession($this->tenant, 'sess-1');
         $this->assertCount(1, $logsAfterFirst);
 
-        // Record same value again — should not produce another log entry
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -130,7 +131,7 @@ class ConsentServiceTest extends TestCase
 
     public function testAuditLogCreatedOnNewConsent(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: 'user-42',
@@ -156,14 +157,14 @@ class ConsentServiceTest extends TestCase
 
     public function testAuditLogCreatedOnConsentChange(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
             consents: ['analytics_storage' => 'denied'],
         );
 
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -191,8 +192,8 @@ class ConsentServiceTest extends TestCase
         $tenantA = new Tenant('organization', 1);
         $tenantB = new Tenant('organization', 2);
 
-        $this->service->recordConsent($tenantA, 'sess-1', null, ['analytics_storage' => 'granted']);
-        $this->service->recordConsent($tenantB, 'sess-1', null, ['analytics_storage' => 'denied']);
+        $this->action->execute($tenantA, 'sess-1', null, ['analytics_storage' => 'granted']);
+        $this->action->execute($tenantB, 'sess-1', null, ['analytics_storage' => 'denied']);
 
         $consentA = $this->consentRepo->findBySessionAndType($tenantA, 'sess-1', ConsentType::ANALYTICS_STORAGE);
         $consentB = $this->consentRepo->findBySessionAndType($tenantB, 'sess-1', ConsentType::ANALYTICS_STORAGE);
@@ -209,8 +210,8 @@ class ConsentServiceTest extends TestCase
         $project = new Tenant('project', 10);
         $workspace = new Tenant('workspace', 10);
 
-        $this->service->recordConsent($project, 'sess-1', null, ['ad_storage' => 'granted']);
-        $this->service->recordConsent($workspace, 'sess-1', null, ['ad_storage' => 'denied']);
+        $this->action->execute($project, 'sess-1', null, ['ad_storage' => 'granted']);
+        $this->action->execute($workspace, 'sess-1', null, ['ad_storage' => 'denied']);
 
         $projectConsent = $this->consentRepo->findBySessionAndType($project, 'sess-1', ConsentType::AD_STORAGE);
         $workspaceConsent = $this->consentRepo->findBySessionAndType($workspace, 'sess-1', ConsentType::AD_STORAGE);
@@ -225,8 +226,8 @@ class ConsentServiceTest extends TestCase
 
     public function testSessionIsolation(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-A', null, ['analytics_storage' => 'granted']);
-        $this->service->recordConsent($this->tenant, 'sess-B', null, ['analytics_storage' => 'denied']);
+        $this->action->execute($this->tenant, 'sess-A', null, ['analytics_storage' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-B', null, ['analytics_storage' => 'denied']);
 
         $consentA = $this->consentRepo->findBySessionAndType($this->tenant, 'sess-A', ConsentType::ANALYTICS_STORAGE);
         $consentB = $this->consentRepo->findBySessionAndType($this->tenant, 'sess-B', ConsentType::ANALYTICS_STORAGE);
@@ -237,7 +238,7 @@ class ConsentServiceTest extends TestCase
 
     public function testGetAllConsentsForSession(): void
     {
-        $this->service->recordConsent(
+        $this->action->execute(
             tenant: $this->tenant,
             sessionId: 'sess-1',
             userId: null,
@@ -247,9 +248,21 @@ class ConsentServiceTest extends TestCase
             ],
         );
 
-        $all = $this->service->getAllConsentsForSession($this->tenant, 'sess-1');
+        $getAll = new GetAllConsentsForSession($this->consentRepo);
+        $all = $getAll->execute($this->tenant, 'sess-1');
 
         $this->assertCount(2, $all);
+    }
+
+    public function testGetConsentAction(): void
+    {
+        $this->action->execute($this->tenant, 'sess-1', null, ['ad_storage' => 'granted']);
+
+        $getConsent = new GetConsent($this->consentRepo);
+        $consent = $getConsent->execute($this->tenant, 'sess-1', ConsentType::AD_STORAGE);
+
+        $this->assertNotNull($consent);
+        $this->assertTrue($consent->isGranted());
     }
 
     // -------------------------------------------------------------------------
@@ -261,7 +274,7 @@ class ConsentServiceTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown consent type');
 
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['unknown_type' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['unknown_type' => 'granted']);
     }
 
     public function testThrowsOnInvalidConsentStatus(): void
@@ -269,6 +282,6 @@ class ConsentServiceTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid consent status');
 
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['analytics_storage' => 'maybe']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['analytics_storage' => 'maybe']);
     }
 }

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Tests\Unit\Domain;
+namespace Marktic\CMP\Tests\Unit\Base;
 
 use InvalidArgumentException;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
 use PHPUnit\Framework\TestCase;
 
 class TenantTest extends TestCase

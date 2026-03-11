@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Domain;
+namespace Marktic\CMP\ConsentLogs\Models;
 
 use DateTimeImmutable;
-use Marktic\CMP\Domain\Enum\ConsentSource;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Enums\ConsentSource;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 

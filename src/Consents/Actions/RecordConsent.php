@@ -2,19 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Application\Service;
+namespace Marktic\CMP\Consents\Actions;
 
 use InvalidArgumentException;
-use Marktic\CMP\Domain\Consent;
-use Marktic\CMP\Domain\ConsentLog;
-use Marktic\CMP\Domain\Enum\ConsentSource;
-use Marktic\CMP\Domain\Enum\ConsentStatus;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Repository\ConsentLogRepositoryInterface;
-use Marktic\CMP\Domain\Repository\ConsentRepositoryInterface;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\ConsentLogs\Models\ConsentLog;
+use Marktic\CMP\ConsentLogs\Repository\ConsentLogRepositoryInterface;
+use Marktic\CMP\Consents\Enums\ConsentSource;
+use Marktic\CMP\Consents\Enums\ConsentStatus;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Models\Consent;
+use Marktic\CMP\Consents\Repository\ConsentRepositoryInterface;
+use Ramsey\Uuid\Uuid;
 
-class ConsentService
+/**
+ * Records or updates user consent values for a session.
+ *
+ * For each consent type in the provided map:
+ *   - Creates a new Consent record if none exists.
+ *   - Updates the existing record and writes an audit log when the value changes.
+ *   - Silently skips unchanged values (no log entry written).
+ */
+class RecordConsent
 {
     public function __construct(
         private readonly ConsentRepositoryInterface $consentRepository,
@@ -22,13 +31,11 @@ class ConsentService
     ) {}
 
     /**
-     * Record or update consent values for a session.
-     *
      * @param array<string, string> $consents  Keyed by ConsentType value, valued by ConsentStatus value.
      *
      * @throws InvalidArgumentException When an unknown consent type or status is provided.
      */
-    public function recordConsent(
+    public function execute(
         Tenant $tenant,
         string $sessionId,
         ?string $userId,
@@ -83,31 +90,6 @@ class ConsentService
     }
 
     /**
-     * Retrieve the current consent status for a specific type and session.
-     */
-    public function getConsent(
-        Tenant $tenant,
-        string $sessionId,
-        ConsentType $type,
-    ): ?Consent {
-        return $this->consentRepository->findBySessionAndType($tenant, $sessionId, $type);
-    }
-
-    /**
-     * Retrieve all current consent states for a session.
-     *
-     * @return Consent[]
-     */
-    public function getAllConsentsForSession(
-        Tenant $tenant,
-        string $sessionId,
-    ): array {
-        return $this->consentRepository->findAllBySession($tenant, $sessionId);
-    }
-
-    /**
-     * Validate the raw consent input array.
-     *
      * @param array<string, string> $consents
      *
      * @return array<string, string>
@@ -153,7 +135,7 @@ class ConsentService
         ], JSON_THROW_ON_ERROR);
 
         $log = ConsentLog::create(
-            consentId: \Ramsey\Uuid\Uuid::fromString($consentId),
+            consentId: Uuid::fromString($consentId),
             tenant: $tenant,
             sessionId: $sessionId,
             userId: $userId,

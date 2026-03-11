@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Application\Query;
+namespace Marktic\CMP\Utility;
 
-use Marktic\CMP\Domain\Enum\ConsentStatus;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Repository\ConsentRepositoryInterface;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Enums\ConsentStatus;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Repository\ConsentRepositoryInterface;
 
 /**
  * Provides a convenient API to query consent permissions for a specific session.
@@ -62,7 +62,7 @@ class ConsentChecker
     /**
      * Return a map of all consent types to their current status.
      *
-     * @return array<string, string>  Keys are ConsentType values, values are ConsentStatus values or 'unknown'.
+     * @return array<string, string>  Keys are ConsentType values, values are ConsentStatus values.
      */
     public function getAll(): array
     {

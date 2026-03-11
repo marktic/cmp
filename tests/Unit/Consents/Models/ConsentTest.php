@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Tests\Unit\Domain;
+namespace Marktic\CMP\Tests\Unit\Consents\Models;
 
-use Marktic\CMP\Domain\Consent;
-use Marktic\CMP\Domain\Enum\ConsentStatus;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Enums\ConsentStatus;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Models\Consent;
 use PHPUnit\Framework\TestCase;
 
 class ConsentTest extends TestCase
@@ -65,7 +65,6 @@ class ConsentTest extends TestCase
 
         $originalUpdatedAt = $consent->getUpdatedAt();
 
-        // Ensure enough time passes so updatedAt changes
         usleep(1000);
 
         $consent->update(ConsentStatus::GRANTED);

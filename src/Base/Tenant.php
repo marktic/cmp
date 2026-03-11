@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Domain;
+namespace Marktic\CMP\Base;
 
 use InvalidArgumentException;
 

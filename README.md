@@ -2,7 +2,7 @@
 
 A modern, framework-agnostic PHP 8.3+ Composer package for **server-side Consent Mode management** in multi-tenant SaaS applications.
 
-Designed to record, audit, and query user consent for **Google Consent Mode** categories (analytics, ads, etc.) with a clean Domain / Application / Infrastructure architecture.
+Designed to record, audit, and query user consent for **Google Consent Mode** categories (analytics, ads, etc.) with a clean feature-based architecture.
 
 ---
 
@@ -29,7 +29,7 @@ Designed to record, audit, and query user consent for **Google Consent Mode** ca
 
 - ✅ PHP 8.3+ with strict types
 - ✅ PSR-4 autoloading, PSR-12 coding standard
-- ✅ Clean architecture: Domain / Application / Infrastructure
+- ✅ Feature-based architecture (`Base`, `Consents`, `ConsentLogs`, `Utility`, `Migration`)
 - ✅ Framework-agnostic core
 - ✅ Multi-tenant support (`tenant_type` / `tenant_id`)
 - ✅ Session-based and user-based consent tracking
@@ -64,7 +64,7 @@ composer require marktic/cmp
 All database tables are prefixed with `mkt_cmp_` by default. To use a custom prefix, set the static property on `SchemaDefinition` before generating your migrations:
 
 ```php
-use Marktic\CMP\Infrastructure\Migration\SchemaDefinition;
+use Marktic\CMP\Migration\SchemaDefinition;
 
 SchemaDefinition::$prefix = 'my_app_cmp_';
 ```
@@ -73,36 +73,44 @@ SchemaDefinition::$prefix = 'my_app_cmp_';
 
 ## Architecture
 
+The package follows a **feature-based structure** consistent with other packages in the marktic organization. Code is organized by domain feature rather than by architectural layer.
+
 ```
 src/
-├── Domain/                        # Pure domain logic — no framework dependencies
-│   ├── Consent.php                # Consent entity
-│   ├── ConsentLog.php             # Consent audit log entity
-│   ├── Tenant.php                 # Tenant value object
-│   ├── Enum/
-│   │   ├── ConsentType.php        # Enum: all supported consent types
-│   │   ├── ConsentStatus.php      # Enum: granted | denied
-│   │   └── ConsentSource.php      # Enum: api | frontend | import | admin
-│   └── Repository/
-│       ├── ConsentRepositoryInterface.php
-│       └── ConsentLogRepositoryInterface.php
+├── Base/                              # Shared cross-cutting types
+│   └── Tenant.php                     # Tenant value object
 │
-├── Application/                   # Use cases / services
-│   ├── Service/
-│   │   └── ConsentService.php     # Core business logic
-│   └── Query/
-│       └── ConsentChecker.php     # Convenience query helper
-│
-├── Infrastructure/                # Concrete implementations
+├── Consents/                          # Feature: Consent records (mkt_cmp_consents)
+│   ├── Enums/
+│   │   ├── ConsentType.php            # All 7 consent type values
+│   │   ├── ConsentStatus.php          # granted | denied
+│   │   └── ConsentSource.php          # api | frontend | import | admin
+│   ├── Models/
+│   │   └── Consent.php                # Consent entity
 │   ├── Repository/
-│   │   ├── InMemoryConsentRepository.php     # For testing / dev
-│   │   └── InMemoryConsentLogRepository.php  # For testing / dev
-│   └── Migration/
-│       └── SchemaDefinition.php              # DDL SQL templates
+│   │   ├── ConsentRepositoryInterface.php
+│   │   └── InMemoryConsentRepository.php
+│   └── Actions/
+│       ├── RecordConsent.php          # Records or updates consent + writes audit log
+│       ├── GetConsent.php             # Retrieves a single consent
+│       └── GetAllConsentsForSession.php
+│
+├── ConsentLogs/                       # Feature: Audit log (mkt_cmp_consent_logs)
+│   ├── Models/
+│   │   └── ConsentLog.php             # Immutable audit log entry
+│   └── Repository/
+│       ├── ConsentLogRepositoryInterface.php
+│       └── InMemoryConsentLogRepository.php
+│
+├── Migration/
+│   └── SchemaDefinition.php           # DDL SQL templates
+│
+├── Utility/
+│   └── ConsentChecker.php             # Convenient query helper
 │
 └── Http/
     └── Trait/
-        └── ConsentApiControllerTrait.php     # Framework bridge for controllers
+        └── ConsentApiControllerTrait.php  # Framework bridge for POST /consent
 ```
 
 ---
@@ -157,7 +165,7 @@ Stores **every** consent change for auditing. Rows are append-only.
 ### Generating DDL SQL
 
 ```php
-use Marktic\CMP\Infrastructure\Migration\SchemaDefinition;
+use Marktic\CMP\Migration\SchemaDefinition;
 
 // Get individual SQL statements
 $consentsSql  = SchemaDefinition::consentsTable();
@@ -179,7 +187,7 @@ The package is designed for multi-tenant SaaS applications. Every consent record
 - `tenant_id` (int) — the unique identifier of that tenant entity
 
 ```php
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
 
 $tenant = new Tenant('organization', 10);  // organization/10
 $tenant = new Tenant('project', 44);       // project/44
@@ -229,24 +237,24 @@ Data from one tenant is **never** accessible by another tenant. The repository q
 In production, replace `InMemory*` repositories with your framework's database implementations (Doctrine, Eloquent, etc.).
 
 ```php
-use Marktic\CMP\Application\Service\ConsentService;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentRepository;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentLogRepository;
+use Marktic\CMP\ConsentLogs\Repository\InMemoryConsentLogRepository;
+use Marktic\CMP\Consents\Actions\RecordConsent;
+use Marktic\CMP\Consents\Repository\InMemoryConsentRepository;
 
 $consentRepo = new InMemoryConsentRepository();
 $logRepo     = new InMemoryConsentLogRepository();
-$service     = new ConsentService($consentRepo, $logRepo);
+$record      = new RecordConsent($consentRepo, $logRepo);
 ```
 
 ### Recording Consent
 
 ```php
-use Marktic\CMP\Domain\Enum\ConsentSource;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Enums\ConsentSource;
 
 $tenant = new Tenant('organization', 10);
 
-$service->recordConsent(
+$record->execute(
     tenant:    $tenant,
     sessionId: 'sess_abc123',
     userId:    'user_42',          // null for anonymous
@@ -270,17 +278,21 @@ When called again with the same session, only **changed** values are updated and
 ### Querying Consent
 
 ```php
-use Marktic\CMP\Domain\Enum\ConsentType;
+use Marktic\CMP\Consents\Actions\GetConsent;
+use Marktic\CMP\Consents\Actions\GetAllConsentsForSession;
+use Marktic\CMP\Consents\Enums\ConsentType;
 
 // Get a single consent
-$consent = $service->getConsent($tenant, 'sess_abc123', ConsentType::ANALYTICS_STORAGE);
+$getConsent = new GetConsent($consentRepo);
+$consent = $getConsent->execute($tenant, 'sess_abc123', ConsentType::ANALYTICS_STORAGE);
 
 if ($consent !== null && $consent->isGranted()) {
     // analytics is allowed
 }
 
 // Get all consents for a session
-$consents = $service->getAllConsentsForSession($tenant, 'sess_abc123');
+$getAll = new GetAllConsentsForSession($consentRepo);
+$consents = $getAll->execute($tenant, 'sess_abc123');
 ```
 
 ### Using ConsentChecker
@@ -288,13 +300,14 @@ $consents = $service->getAllConsentsForSession($tenant, 'sess_abc123');
 `ConsentChecker` provides a more expressive API for checking permissions in application code.
 
 ```php
-use Marktic\CMP\Application\Query\ConsentChecker;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Utility\ConsentChecker;
 
 $checker = new ConsentChecker($consentRepo, $tenant, 'sess_abc123');
 
 // Enum-based check
 $checker->isGranted(ConsentType::ANALYTICS_STORAGE); // true / false
-$checker->isDenied(ConsentType::AD_STORAGE);         // true / false
+$checker->isDenied(ConsentType::AD_STORAGE);         // true / false (false if not recorded)
 
 // String-based check (useful when the type comes from config/request)
 $checker->hasConsent('analytics_storage');            // true / false
@@ -334,6 +347,7 @@ X-Tenant-Id:   10
 ### Framework integration example (pseudo-framework)
 
 ```php
+use Marktic\CMP\Consents\Actions\RecordConsent;
 use Marktic\CMP\Http\Trait\ConsentApiControllerTrait;
 
 class ConsentController
@@ -341,13 +355,13 @@ class ConsentController
     use ConsentApiControllerTrait;
 
     public function __construct(
-        private readonly ConsentService $consentService,
+        private readonly RecordConsent $recordConsent,
         private readonly Request $request,
     ) {}
 
     public function update(): JsonResponse
     {
-        $result = $this->handleConsentUpdate($this->consentService);
+        $result = $this->handleConsentUpdate($this->recordConsent);
 
         $statusCode = $result['status'] === 'ok' ? 200 : 422;
 

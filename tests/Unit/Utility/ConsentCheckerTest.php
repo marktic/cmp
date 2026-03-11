@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Tests\Unit\Application;
+namespace Marktic\CMP\Tests\Unit\Utility;
 
-use Marktic\CMP\Application\Query\ConsentChecker;
-use Marktic\CMP\Application\Service\ConsentService;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Tenant;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentLogRepository;
-use Marktic\CMP\Infrastructure\Repository\InMemoryConsentRepository;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\ConsentLogs\Repository\InMemoryConsentLogRepository;
+use Marktic\CMP\Consents\Actions\RecordConsent;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Repository\InMemoryConsentRepository;
+use Marktic\CMP\Utility\ConsentChecker;
 use PHPUnit\Framework\TestCase;
 
 class ConsentCheckerTest extends TestCase
 {
-    private ConsentService $service;
+    private RecordConsent $action;
     private InMemoryConsentRepository $repo;
     private Tenant $tenant;
 
     protected function setUp(): void
     {
         $this->repo = new InMemoryConsentRepository();
-        $this->service = new ConsentService($this->repo, new InMemoryConsentLogRepository());
+        $this->action = new RecordConsent($this->repo, new InMemoryConsentLogRepository());
         $this->tenant = new Tenant('organization', 10);
     }
 
@@ -36,14 +36,14 @@ class ConsentCheckerTest extends TestCase
 
     public function testIsGrantedReturnsTrueWhenGranted(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['analytics_storage' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['analytics_storage' => 'granted']);
 
         $this->assertTrue($this->checker('sess-1')->isGranted(ConsentType::ANALYTICS_STORAGE));
     }
 
     public function testIsGrantedReturnsFalseWhenDenied(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['analytics_storage' => 'denied']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['analytics_storage' => 'denied']);
 
         $this->assertFalse($this->checker('sess-1')->isGranted(ConsentType::ANALYTICS_STORAGE));
     }
@@ -55,21 +55,20 @@ class ConsentCheckerTest extends TestCase
 
     public function testIsDeniedReturnsTrueWhenDenied(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['ad_storage' => 'denied']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['ad_storage' => 'denied']);
 
         $this->assertTrue($this->checker('sess-1')->isDenied(ConsentType::AD_STORAGE));
     }
 
     public function testIsDeniedReturnsFalseWhenGranted(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['ad_storage' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['ad_storage' => 'granted']);
 
         $this->assertFalse($this->checker('sess-1')->isDenied(ConsentType::AD_STORAGE));
     }
 
     public function testIsDeniedReturnsFalseWhenNotRecorded(): void
     {
-        // Not recorded — isDenied should NOT report it as denied (it is simply unknown)
         $this->assertFalse($this->checker('sess-1')->isDenied(ConsentType::AD_STORAGE));
     }
 
@@ -79,14 +78,14 @@ class ConsentCheckerTest extends TestCase
 
     public function testHasConsentByStringGranted(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['ad_personalization' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['ad_personalization' => 'granted']);
 
         $this->assertTrue($this->checker('sess-1')->hasConsent('ad_personalization'));
     }
 
     public function testHasConsentByStringDenied(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, ['ad_personalization' => 'denied']);
+        $this->action->execute($this->tenant, 'sess-1', null, ['ad_personalization' => 'denied']);
 
         $this->assertFalse($this->checker('sess-1')->hasConsent('ad_personalization'));
     }
@@ -97,7 +96,7 @@ class ConsentCheckerTest extends TestCase
 
     public function testGetAllReturnsAllRecordedConsents(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-1', null, [
+        $this->action->execute($this->tenant, 'sess-1', null, [
             'analytics_storage' => 'granted',
             'ad_storage' => 'denied',
         ]);
@@ -121,8 +120,8 @@ class ConsentCheckerTest extends TestCase
 
     public function testCheckerSessionIsolation(): void
     {
-        $this->service->recordConsent($this->tenant, 'sess-A', null, ['analytics_storage' => 'granted']);
-        $this->service->recordConsent($this->tenant, 'sess-B', null, ['analytics_storage' => 'denied']);
+        $this->action->execute($this->tenant, 'sess-A', null, ['analytics_storage' => 'granted']);
+        $this->action->execute($this->tenant, 'sess-B', null, ['analytics_storage' => 'denied']);
 
         $this->assertTrue($this->checker('sess-A')->isGranted(ConsentType::ANALYTICS_STORAGE));
         $this->assertFalse($this->checker('sess-B')->isGranted(ConsentType::ANALYTICS_STORAGE));

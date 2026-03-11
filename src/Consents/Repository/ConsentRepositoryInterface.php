@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Domain\Repository;
+namespace Marktic\CMP\Consents\Repository;
 
-use Marktic\CMP\Domain\Consent;
-use Marktic\CMP\Domain\Enum\ConsentType;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Consents\Models\Consent;
 
 interface ConsentRepositoryInterface
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Domain\Repository;
+namespace Marktic\CMP\ConsentLogs\Repository;
 
-use Marktic\CMP\Domain\ConsentLog;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\ConsentLogs\Models\ConsentLog;
 
 interface ConsentLogRepositoryInterface
 {

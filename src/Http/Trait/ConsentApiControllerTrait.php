@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Marktic\CMP\Http\Trait;
 
 use InvalidArgumentException;
-use Marktic\CMP\Application\Service\ConsentService;
-use Marktic\CMP\Domain\Enum\ConsentSource;
-use Marktic\CMP\Domain\Tenant;
+use Marktic\CMP\Base\Tenant;
+use Marktic\CMP\Consents\Actions\RecordConsent;
+use Marktic\CMP\Consents\Enums\ConsentSource;
 
 /**
  * Reusable trait for framework API controllers that handle consent updates.
@@ -21,7 +21,7 @@ use Marktic\CMP\Domain\Tenant;
  *   {
  *       use ConsentApiControllerTrait;
  *
- *       public function __construct(private readonly ConsentService $consentService) {}
+ *       public function __construct(private readonly RecordConsent $recordConsent) {}
  *
  *       // Implement the abstract methods for your framework.
  *   }
@@ -51,7 +51,7 @@ trait ConsentApiControllerTrait
      *
      * @return array{status: string, message: string}|array{status: string, errors: mixed}
      */
-    public function handleConsentUpdate(ConsentService $consentService): array
+    public function handleConsentUpdate(RecordConsent $recordConsent): array
     {
         try {
             $tenantType = $this->resolveTenantType();
@@ -81,7 +81,7 @@ trait ConsentApiControllerTrait
 
             $tenant = new Tenant($tenantType, $tenantId);
 
-            $consentService->recordConsent(
+            $recordConsent->execute(
                 tenant: $tenant,
                 sessionId: $sessionId,
                 userId: $userId,
