@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Utility;
+namespace Marktic\Cmp\Utility;
 
-use Marktic\CMP\CmpServiceProvider;
+use Marktic\Cmp\CmpServiceProvider;
 use Nip\Utility\Traits\SingletonTrait;
 
 /**

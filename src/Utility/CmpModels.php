@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Utility;
+namespace Marktic\Cmp\Utility;
 
 use ByTIC\PackageBase\Utility\ModelFinder;
-use Marktic\CMP\CmpServiceProvider;
-use Marktic\CMP\ConsentLogs\Models\ConsentLogs;
-use Marktic\CMP\Consents\Models\Consents;
+use Marktic\Cmp\CmpServiceProvider;
+use Marktic\Cmp\ConsentLogs\Models\ConsentLogs;
+use Marktic\Cmp\Consents\Models\Consents;
 use Nip\Records\RecordManager;
 
 /**

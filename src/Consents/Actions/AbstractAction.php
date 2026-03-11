@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Actions;
+namespace Marktic\Cmp\Consents\Actions;
 
 use Bytic\Actions\Action;
 use Bytic\Actions\Behaviours\Entities\HasRepository;
-use Marktic\CMP\Consents\Models\Consents;
-use Marktic\CMP\Utility\CmpModels;
+use Marktic\Cmp\Consents\Models\Consents;
+use Marktic\Cmp\Utility\CmpModels;
 use Nip\Records\AbstractModels\RecordManager;
 
 /**

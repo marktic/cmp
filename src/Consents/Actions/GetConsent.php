@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Actions;
+namespace Marktic\Cmp\Consents\Actions;
 
-use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Consents\Models\Consent;
+use Marktic\Cmp\Consents\Enums\ConsentType;
+use Marktic\Cmp\Consents\Models\Consent;
 
 /**
  * Retrieves the current consent state for a specific session and consent type.

@@ -32,12 +32,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Marktic\\CMP\\": "src/"
+            "Marktic\\Cmp\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Marktic\\CMP\\Tests\\": "tests/"
+            "Marktic\\Cmp\\Tests\\": "tests/"
         }
     },
     "scripts": {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Base\Models\Traits;
+namespace Marktic\Cmp\Base\Models\Traits;
 
 trait BaseRepositoryTrait
 {

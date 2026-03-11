@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\ConsentLogs\Models;
+namespace Marktic\Cmp\ConsentLogs\Models;
 
-use Marktic\CMP\Base\Models\CmpRecords;
+use Marktic\Cmp\Base\Models\CmpRecords;
 
 /**
  * Class ConsentLogs
- * @package Marktic\CMP\ConsentLogs\Models
+ * @package Marktic\Cmp\ConsentLogs\Models
  *
  * @method ConsentLog getNewRecord($data = [])
  */

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\ConsentLogs\Models;
+namespace Marktic\Cmp\ConsentLogs\Models;
 
-use Marktic\CMP\Base\Models\HasTenant\HasTenantRecord;
-use Marktic\CMP\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Base\Models\HasTenant\HasTenantRecord;
+use Marktic\Cmp\Consents\Enums\ConsentSource;
 
 trait ConsentLogTrait
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP;
+namespace Marktic\Cmp;
 
 use ByTIC\PackageBase\BaseBootableServiceProvider;
-use Marktic\CMP\Utility\PackageConfig;
+use Marktic\Cmp\Utility\PackageConfig;
 
 /**
  * Class CmpServiceProvider.

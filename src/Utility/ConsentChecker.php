@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Utility;
+namespace Marktic\Cmp\Utility;
 
-use Marktic\CMP\Consents\Enums\ConsentStatus;
-use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Consents\Models\Consents;
+use Marktic\Cmp\Consents\Enums\ConsentStatus;
+use Marktic\Cmp\Consents\Enums\ConsentType;
+use Marktic\Cmp\Consents\Models\Consents;
 
 /**
  * Provides a convenient API to query consent permissions for a specific session.

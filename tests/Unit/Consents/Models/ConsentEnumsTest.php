@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Tests\Unit\Consents\Models;
+namespace Marktic\Cmp\Tests\Unit\Consents\Models;
 
-use Marktic\CMP\Consents\Enums\ConsentSource;
-use Marktic\CMP\Consents\Enums\ConsentStatus;
-use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\Cmp\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Consents\Enums\ConsentStatus;
+use Marktic\Cmp\Consents\Enums\ConsentType;
 use PHPUnit\Framework\TestCase;
 
 class ConsentEnumsTest extends TestCase

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Enums;
+namespace Marktic\Cmp\Consents\Enums;
 
 enum ConsentStatus: string
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\ConsentLogs\Models;
+namespace Marktic\Cmp\ConsentLogs\Models;
 
-use Marktic\CMP\Base\Models\HasTenant\HasTenantRepository;
-use Marktic\CMP\Utility\PackageConfig;
+use Marktic\Cmp\Base\Models\HasTenant\HasTenantRepository;
+use Marktic\Cmp\Utility\PackageConfig;
 use Nip\Records\Collections\Collection;
 
 trait ConsentLogsTrait

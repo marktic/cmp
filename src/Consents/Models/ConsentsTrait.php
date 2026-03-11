@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Models;
+namespace Marktic\Cmp\Consents\Models;
 
-use Marktic\CMP\Base\Models\HasTenant\HasTenantRepository;
-use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Utility\PackageConfig;
+use Marktic\Cmp\Base\Models\HasTenant\HasTenantRepository;
+use Marktic\Cmp\Consents\Enums\ConsentType;
+use Marktic\Cmp\Utility\PackageConfig;
 use Nip\Records\Collections\Collection;
 
 trait ConsentsTrait

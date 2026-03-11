@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Actions;
+namespace Marktic\Cmp\Consents\Actions;
 
 use InvalidArgumentException;
-use Marktic\CMP\ConsentLogs\Models\ConsentLogs;
-use Marktic\CMP\Consents\Enums\ConsentSource;
-use Marktic\CMP\Consents\Enums\ConsentStatus;
-use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Consents\Models\Consent;
-use Marktic\CMP\Utility\CmpModels;
+use Marktic\Cmp\ConsentLogs\Models\ConsentLogs;
+use Marktic\Cmp\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Consents\Enums\ConsentStatus;
+use Marktic\Cmp\Consents\Enums\ConsentType;
+use Marktic\Cmp\Consents\Models\Consent;
+use Marktic\Cmp\Utility\CmpModels;
 
 /**
  * Records or updates user consent values for a session.

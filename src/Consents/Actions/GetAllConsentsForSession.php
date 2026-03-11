@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Actions;
+namespace Marktic\Cmp\Consents\Actions;
 
-use Marktic\CMP\Consents\Models\Consent;
+use Marktic\Cmp\Consents\Models\Consent;
 use Nip\Records\Collections\Collection;
 
 /**

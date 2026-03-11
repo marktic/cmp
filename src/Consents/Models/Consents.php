@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Consents\Models;
+namespace Marktic\Cmp\Consents\Models;
 
-use Marktic\CMP\Base\Models\CmpRecords;
+use Marktic\Cmp\Base\Models\CmpRecords;
 
 /**
  * Class Consents
- * @package Marktic\CMP\Consents\Models
+ * @package Marktic\Cmp\Consents\Models
  *
  * @method Consent getNewRecord($data = [])
  * @method Consent|null findOneByParams($params)

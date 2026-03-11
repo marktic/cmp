@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Http\Trait;
+namespace Marktic\Cmp\Http\Trait;
 
 use InvalidArgumentException;
-use Marktic\CMP\Consents\Actions\RecordConsent;
-use Marktic\CMP\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Consents\Actions\RecordConsent;
+use Marktic\Cmp\Consents\Enums\ConsentSource;
 
 /**
  * Reusable trait for framework API controllers that handle consent updates.

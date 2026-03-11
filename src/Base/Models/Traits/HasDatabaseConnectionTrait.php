@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Base\Models\Traits;
+namespace Marktic\Cmp\Base\Models\Traits;
 
-use Marktic\CMP\Utility\PackageConfig;
+use Marktic\Cmp\Utility\PackageConfig;
 
 trait HasDatabaseConnectionTrait
 {

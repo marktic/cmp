@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Base\Models;
+namespace Marktic\Cmp\Base\Models;
 
 use Nip\Records\RecordManager;
 
@@ -12,6 +12,6 @@ class CmpRecords extends RecordManager
 
     public function getRootNamespace(): string
     {
-        return 'Marktic\CMP\Models\\';
+        return 'Marktic\Cmp\Models\\';
     }
 }

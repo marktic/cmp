@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\CMP\Base\Models;
+namespace Marktic\Cmp\Base\Models;
 
 use Nip\Records\Record;
 

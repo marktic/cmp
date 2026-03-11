@@ -68,7 +68,7 @@ composer require marktic/cmp
 Register the service provider in your application bootstrap:
 
 ```php
-use Marktic\CMP\CmpServiceProvider;
+use Marktic\Cmp\CmpServiceProvider;
 
 // Laravel / similar
 $app->register(CmpServiceProvider::class);
@@ -220,7 +220,7 @@ $consents->findAllBySession('project', 44, $sessionId);
 The `Base\Tenant` value object is also available as a lightweight DTO to group these two values when passing them through application layers:
 
 ```php
-use Marktic\CMP\Base\Tenant;
+use Marktic\Cmp\Base\Tenant;
 
 $tenant = new Tenant('organization', 10);
 $consents->findAllBySession($tenant->type, $tenant->id, $sessionId);
@@ -267,8 +267,8 @@ $consents->findAllBySession($tenant->type, $tenant->id, $sessionId);
 Resolve the managers through `CmpModels` or via dependency injection:
 
 ```php
-use Marktic\CMP\Consents\Actions\RecordConsent;
-use Marktic\CMP\Utility\CmpModels;
+use Marktic\Cmp\Consents\Actions\RecordConsent;
+use Marktic\Cmp\Utility\CmpModels;
 
 $consents    = CmpModels::consents();
 $consentLogs = CmpModels::consentLogs();
@@ -278,7 +278,7 @@ $record      = new RecordConsent();
 ### Recording Consent
 
 ```php
-use Marktic\CMP\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Consents\Enums\ConsentSource;
 
 $record->handle(
     tenant:    'organization',
@@ -305,9 +305,9 @@ When called again with the same session, only **changed** values are updated and
 ### Querying Consent
 
 ```php
-use Marktic\CMP\Consents\Actions\GetConsent;
-use Marktic\CMP\Consents\Actions\GetAllConsentsForSession;
-use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\Cmp\Consents\Actions\GetConsent;
+use Marktic\Cmp\Consents\Actions\GetAllConsentsForSession;
+use Marktic\Cmp\Consents\Enums\ConsentType;
 
 // Get a single consent
 $getConsent = new GetConsent();
@@ -327,9 +327,9 @@ $consents = $getAll->handle('organization', 10, 'sess_abc123');
 `ConsentChecker` provides a more expressive API for checking permissions in application code.
 
 ```php
-use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Utility\CmpModels;
-use Marktic\CMP\Utility\ConsentChecker;
+use Marktic\Cmp\Consents\Enums\ConsentType;
+use Marktic\Cmp\Utility\CmpModels;
+use Marktic\Cmp\Utility\ConsentChecker;
 
 $checker = new ConsentChecker(CmpModels::consents(), 'organization', 10, 'sess_abc123');
 
@@ -375,8 +375,8 @@ X-Tenant-Id:   10
 ### Framework integration example (pseudo-framework)
 
 ```php
-use Marktic\CMP\Consents\Actions\RecordConsent;
-use Marktic\CMP\Http\Trait\ConsentApiControllerTrait;
+use Marktic\Cmp\Consents\Actions\RecordConsent;
+use Marktic\Cmp\Http\Trait\ConsentApiControllerTrait;
 
 class ConsentController
 {
