@@ -20,6 +20,11 @@
     ],
     "require": {
         "php": "^8.3",
+        "bytic/actions": "^1.0|^2.0",
+        "bytic/migrations": "~0.13",
+        "bytic/orm": "^0.9|^1.0|^2.0",
+        "bytic/orm-behaviors": "^0.9|^1.0|^2.0",
+        "bytic/package-base": "^1.0",
         "ramsey/uuid": "^4.7"
     },
     "require-dev": {
