@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Marktic\CMP\Consents\Actions;
 
 use InvalidArgumentException;
-use Marktic\CMP\Base\Tenant;
-use Marktic\CMP\ConsentLogs\Models\ConsentLog;
-use Marktic\CMP\ConsentLogs\Repository\ConsentLogRepositoryInterface;
+use Marktic\CMP\ConsentLogs\Models\ConsentLogs;
 use Marktic\CMP\Consents\Enums\ConsentSource;
 use Marktic\CMP\Consents\Enums\ConsentStatus;
 use Marktic\CMP\Consents\Enums\ConsentType;
 use Marktic\CMP\Consents\Models\Consent;
-use Marktic\CMP\Consents\Repository\ConsentRepositoryInterface;
-use Ramsey\Uuid\Uuid;
+use Marktic\CMP\Utility\CmpModels;
 
 /**
  * Records or updates user consent values for a session.
@@ -23,20 +20,16 @@ use Ramsey\Uuid\Uuid;
  *   - Updates the existing record and writes an audit log when the value changes.
  *   - Silently skips unchanged values (no log entry written).
  */
-class RecordConsent
+class RecordConsent extends AbstractAction
 {
-    public function __construct(
-        private readonly ConsentRepositoryInterface $consentRepository,
-        private readonly ConsentLogRepositoryInterface $consentLogRepository,
-    ) {}
-
     /**
      * @param array<string, string> $consents  Keyed by ConsentType value, valued by ConsentStatus value.
      *
      * @throws InvalidArgumentException When an unknown consent type or status is provided.
      */
-    public function execute(
-        Tenant $tenant,
+    public function handle(
+        string $tenant,
+        int $tenantId,
         string $sessionId,
         ?string $userId,
         array $consents,
@@ -45,20 +38,29 @@ class RecordConsent
         ?string $userAgent = null,
     ): void {
         $validated = $this->validateConsents($consents);
+        $consentLogs = CmpModels::consentLogs();
 
         foreach ($validated as $type => $status) {
             $consentType = ConsentType::from($type);
             $consentStatus = ConsentStatus::from($status);
 
-            $existing = $this->consentRepository->findBySessionAndType($tenant, $sessionId, $consentType);
+            $existing = $this->getRepository()->findBySessionAndType(
+                $tenant,
+                $tenantId,
+                $sessionId,
+                $consentType,
+            );
 
             if ($existing === null) {
-                $consent = Consent::create($tenant, $sessionId, $userId, $consentType, $consentStatus);
-                $this->consentRepository->save($consent);
+                $consent = $this->createConsentRecord(
+                    $tenant, $tenantId, $sessionId, $userId, $consentType, $consentStatus
+                );
 
                 $this->writeLog(
-                    consentId: $consent->getId()->toString(),
+                    consentLogs: $consentLogs,
+                    consentId: (int) $consent->id,
                     tenant: $tenant,
+                    tenantId: $tenantId,
                     sessionId: $sessionId,
                     userId: $userId,
                     previousStatus: null,
@@ -70,12 +72,14 @@ class RecordConsent
                 );
             } elseif ($existing->getConsentStatus() !== $consentStatus) {
                 $previousStatus = $existing->getConsentStatus();
-                $existing->update($consentStatus);
-                $this->consentRepository->save($existing);
+                $existing->consent_value = $consentStatus->value;
+                $this->getRepository()->save($existing);
 
                 $this->writeLog(
-                    consentId: $existing->getId()->toString(),
+                    consentLogs: $consentLogs,
+                    consentId: (int) $existing->id,
                     tenant: $tenant,
+                    tenantId: $tenantId,
                     sessionId: $sessionId,
                     userId: $userId,
                     previousStatus: $previousStatus,
@@ -87,6 +91,27 @@ class RecordConsent
                 );
             }
         }
+    }
+
+    private function createConsentRecord(
+        string $tenant,
+        int $tenantId,
+        string $sessionId,
+        ?string $userId,
+        ConsentType $consentType,
+        ConsentStatus $consentStatus,
+    ): Consent {
+        /** @var Consent $consent */
+        $consent = $this->getRepository()->getNewRecord([
+            'tenant' => $tenant,
+            'tenant_id' => $tenantId,
+            'session_id' => $sessionId,
+            'user_id' => $userId,
+            'consent_type' => $consentType->value,
+            'consent_value' => $consentStatus->value,
+        ]);
+        $this->getRepository()->save($consent);
+        return $consent;
     }
 
     /**
@@ -117,8 +142,10 @@ class RecordConsent
     }
 
     private function writeLog(
-        string $consentId,
-        Tenant $tenant,
+        ConsentLogs $consentLogs,
+        int $consentId,
+        string $tenant,
+        int $tenantId,
         string $sessionId,
         ?string $userId,
         ?ConsentStatus $previousStatus,
@@ -134,17 +161,18 @@ class RecordConsent
             'new_status' => $newStatus->value,
         ], JSON_THROW_ON_ERROR);
 
-        $log = ConsentLog::create(
-            consentId: Uuid::fromString($consentId),
-            tenant: $tenant,
-            sessionId: $sessionId,
-            userId: $userId,
-            payload: $payload,
-            source: $source,
-            ipAddress: $ipAddress,
-            userAgent: $userAgent,
-        );
+        $log = $consentLogs->getNewRecord([
+            'consent_id' => $consentId,
+            'tenant' => $tenant,
+            'tenant_id' => $tenantId,
+            'session_id' => $sessionId,
+            'user_id' => $userId,
+            'payload' => $payload,
+            'source' => $source->value,
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
+        ]);
 
-        $this->consentLogRepository->save($log);
+        $consentLogs->save($log);
     }
 }

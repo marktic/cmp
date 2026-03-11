@@ -2,7 +2,7 @@
 
 A modern, framework-agnostic PHP 8.3+ Composer package for **server-side Consent Mode management** in multi-tenant SaaS applications.
 
-Designed to record, audit, and query user consent for **Google Consent Mode** categories (analytics, ads, etc.) with a clean feature-based architecture.
+Designed to record, audit, and query user consent for **Google Consent Mode** categories (analytics, ads, etc.) with a clean feature-based architecture built on the **bytic/orm**, **bytic/actions** and **bytic/migrations** ecosystem.
 
 ---
 
@@ -20,8 +20,8 @@ Designed to record, audit, and query user consent for **Google Consent Mode** ca
   - [Querying Consent](#querying-consent)
   - [Using ConsentChecker](#using-consentchecker)
 - [API Endpoint (ConsentApiControllerTrait)](#api-endpoint-consentapicontrollertrait)
+- [Running Migrations](#running-migrations)
 - [Running Tests](#running-tests)
-- [Inspiration](#inspiration)
 
 ---
 
@@ -29,9 +29,12 @@ Designed to record, audit, and query user consent for **Google Consent Mode** ca
 
 - ✅ PHP 8.3+ with strict types
 - ✅ PSR-4 autoloading, PSR-12 coding standard
-- ✅ Feature-based architecture (`Base`, `Consents`, `ConsentLogs`, `Utility`, `Migration`)
+- ✅ Feature-based architecture (`Base`, `Consents`, `ConsentLogs`, `Utility`, database migrations)
+- ✅ Built on **bytic/orm** (`Nip\Records` ORM) for model persistence
+- ✅ **bytic/actions** as the base for all action classes
+- ✅ **bytic/migrations** (Phinx) for database schema migrations
 - ✅ Framework-agnostic core
-- ✅ Multi-tenant support (`tenant_type` / `tenant_id`)
+- ✅ Multi-tenant support (`tenant` type string + `tenant_id`)
 - ✅ Session-based and user-based consent tracking
 - ✅ Consent state table (`mkt_cmp_consents`)
 - ✅ Full audit log table (`mkt_cmp_consent_logs`)
@@ -53,64 +56,101 @@ composer require marktic/cmp
 | Dependency | Version |
 |------------|---------|
 | PHP        | ^8.3    |
-| ramsey/uuid | ^4.7   |
+| bytic/orm  | ^2.0    |
+| bytic/actions | ^1.0 |
+| bytic/migrations | ~0.13 |
+| bytic/package-base | ^1.0 |
 
 ---
 
 ## Configuration
 
-### Table Prefix
-
-All database tables are prefixed with `mkt_cmp_` by default. To use a custom prefix, set the static property on `SchemaDefinition` before generating your migrations:
+Register the service provider in your application bootstrap:
 
 ```php
-use Marktic\CMP\Migration\SchemaDefinition;
+use Marktic\CMP\CmpServiceProvider;
 
-SchemaDefinition::$prefix = 'my_app_cmp_';
+// Laravel / similar
+$app->register(CmpServiceProvider::class);
+```
+
+### Enabling Migrations
+
+By default, migrations are **not** run automatically. Enable them in your `config/mkt_cmp.php`:
+
+```php
+return [
+    'database' => [
+        'migrations' => true,
+        'connection' => env('DB_CONNECTION', 'default'),
+    ],
+    'tables' => [
+        'consents' => 'mkt_cmp_consents',
+        'consent_logs' => 'mkt_cmp_consent_logs',
+    ],
+];
 ```
 
 ---
 
 ## Architecture
 
-The package follows a **feature-based structure** consistent with other packages in the marktic organization. Code is organized by domain feature rather than by architectural layer.
+The package follows a **feature-based structure** consistent with other packages in the marktic organization. Models extend `Nip\Records\Record` (bytic/orm), actions extend `Bytic\Actions\Action`, and migrations are Phinx files.
 
 ```
 src/
 ├── Base/                              # Shared cross-cutting types
-│   └── Tenant.php                     # Tenant value object
+│   ├── Tenant.php                     # Lightweight tenant DTO
+│   └── Models/
+│       ├── CmpRecord.php              # Base Record (extends Nip\Records\Record)
+│       ├── CmpRecords.php             # Base RecordManager
+│       ├── HasTenant/
+│       │   ├── HasTenantRecord.php    # Adds $tenant + $tenant_id to records
+│       │   └── HasTenantRepository.php # morphTo Tenant relation
+│       └── Traits/
+│           ├── BaseRepositoryTrait.php
+│           └── HasDatabaseConnectionTrait.php
 │
-├── Consents/                          # Feature: Consent records (mkt_cmp_consents)
+├── Consents/                          # Feature: mkt_cmp_consents table
 │   ├── Enums/
-│   │   ├── ConsentType.php            # All 7 consent type values
-│   │   ├── ConsentStatus.php          # granted | denied
-│   │   └── ConsentSource.php          # api | frontend | import | admin
+│   │   ├── ConsentType.php
+│   │   ├── ConsentStatus.php
+│   │   └── ConsentSource.php
 │   ├── Models/
-│   │   └── Consent.php                # Consent entity
-│   ├── Repository/
-│   │   ├── ConsentRepositoryInterface.php
-│   │   └── InMemoryConsentRepository.php
+│   │   ├── Consent.php                # ORM Record
+│   │   ├── ConsentTrait.php           # Column getters
+│   │   ├── Consents.php               # ORM RecordManager
+│   │   └── ConsentsTrait.php          # Query methods
 │   └── Actions/
-│       ├── RecordConsent.php          # Records or updates consent + writes audit log
-│       ├── GetConsent.php             # Retrieves a single consent
+│       ├── AbstractAction.php         # Extends Bytic\Actions\Action
+│       ├── RecordConsent.php
+│       ├── GetConsent.php
 │       └── GetAllConsentsForSession.php
 │
-├── ConsentLogs/                       # Feature: Audit log (mkt_cmp_consent_logs)
+├── ConsentLogs/                       # Feature: mkt_cmp_consent_logs table
 │   ├── Models/
-│   │   └── ConsentLog.php             # Immutable audit log entry
-│   └── Repository/
-│       ├── ConsentLogRepositoryInterface.php
-│       └── InMemoryConsentLogRepository.php
+│   │   ├── ConsentLog.php             # ORM Record
+│   │   ├── ConsentLogTrait.php
+│   │   ├── ConsentLogs.php            # ORM RecordManager
+│   │   └── ConsentLogsTrait.php
+│   └── Actions/
+│       └── AbstractAction.php
 │
-├── Migration/
-│   └── SchemaDefinition.php           # DDL SQL templates
+├── CmpServiceProvider.php             # Registers migrations path
 │
 ├── Utility/
-│   └── ConsentChecker.php             # Convenient query helper
+│   ├── CmpModels.php                  # ModelFinder (resolves Consents / ConsentLogs)
+│   ├── PackageConfig.php
+│   └── ConsentChecker.php
 │
 └── Http/
     └── Trait/
-        └── ConsentApiControllerTrait.php  # Framework bridge for POST /consent
+        └── ConsentApiControllerTrait.php
+
+database/
+└── migrations/
+    ├── 20260311000001_cmp_consents.php
+    └── 20260311000002_cmp_consent_logs.php
 ```
 
 ---
@@ -130,19 +170,17 @@ Stores the **current** consent state. One row per tenant + session + consent typ
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | CHAR(36) UUID | Primary key |
-| `tenant_type` | VARCHAR(100) | e.g. `organization`, `project`, `workspace` |
-| `tenant_id` | INT UNSIGNED | Numeric tenant identifier |
+| `id` | BIGINT auto-increment | Primary key |
+| `tenant` | VARCHAR(100) | Morphic type, e.g. `organization`, `project` |
+| `tenant_id` | BIGINT UNSIGNED | Numeric tenant identifier |
 | `session_id` | VARCHAR(255) | Browser/cookie session identifier |
 | `user_id` | VARCHAR(255) nullable | Authenticated user identifier |
 | `consent_type` | VARCHAR(100) | One of the 7 consent type values |
 | `consent_value` | VARCHAR(10) | `granted` or `denied` |
-| `created_at` | DATETIME | Record creation time |
-| `updated_at` | DATETIME | Last update time |
+| `created_at` | TIMESTAMP | Record creation time |
+| `updated_at` | TIMESTAMP | Last update time |
 
-**Unique constraint:** `(tenant_type, tenant_id, session_id, consent_type)`
-
-**Indexes:** `(tenant_type, tenant_id)`, `(tenant_type, tenant_id, session_id)`, `(tenant_type, tenant_id, user_id)`
+**Unique constraint:** `(tenant, tenant_id, session_id, consent_type)`
 
 ### mkt_cmp_consent_logs
 
@@ -150,51 +188,43 @@ Stores **every** consent change for auditing. Rows are append-only.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | CHAR(36) UUID | Primary key |
-| `consent_id` | CHAR(36) UUID nullable | Reference to `mkt_cmp_consents.id` |
-| `tenant_type` | VARCHAR(100) | Tenant type |
-| `tenant_id` | INT UNSIGNED | Tenant ID |
+| `id` | BIGINT auto-increment | Primary key |
+| `consent_id` | BIGINT nullable | Reference to `mkt_cmp_consents.id` |
+| `tenant` | VARCHAR(100) | Morphic tenant type |
+| `tenant_id` | BIGINT UNSIGNED | Tenant ID |
 | `session_id` | VARCHAR(255) | Session identifier |
 | `user_id` | VARCHAR(255) nullable | User identifier |
 | `payload` | TEXT | JSON with `consent_type`, `previous_status`, `new_status` |
 | `source` | VARCHAR(20) | `api`, `frontend`, `import`, or `admin` |
 | `ip_address` | VARCHAR(45) nullable | Client IP |
 | `user_agent` | TEXT nullable | Browser user-agent |
-| `created_at` | DATETIME | Log entry creation time |
-
-### Generating DDL SQL
-
-```php
-use Marktic\CMP\Migration\SchemaDefinition;
-
-// Get individual SQL statements
-$consentsSql  = SchemaDefinition::consentsTable();
-$logsSql      = SchemaDefinition::consentLogsTable();
-
-// Or get both at once
-foreach (SchemaDefinition::all() as $sql) {
-    $pdo->exec($sql);
-}
-```
+| `created_at` | TIMESTAMP | Log entry creation time |
 
 ---
 
 ## Multi-Tenant Model
 
-The package is designed for multi-tenant SaaS applications. Every consent record and log entry is scoped to a **Tenant**, which is a combination of:
+The package is designed for multi-tenant SaaS applications. Every consent record and log entry is scoped to a tenant using a morphic pair:
 
-- `tenant_type` (string) — the type of tenant entity, e.g. `organization`, `project`, `workspace`
-- `tenant_id` (int) — the unique identifier of that tenant entity
+- `tenant` (string) — the morphic type name of the owning entity (e.g. `organization`, `project`)
+- `tenant_id` (int) — the numeric ID of the owning entity
+
+```php
+// Records scoped to organization/10
+$consents->findAllBySession('organization', 10, $sessionId);
+
+// Records scoped to project/44
+$consents->findAllBySession('project', 44, $sessionId);
+```
+
+The `Base\Tenant` value object is also available as a lightweight DTO to group these two values when passing them through application layers:
 
 ```php
 use Marktic\CMP\Base\Tenant;
 
-$tenant = new Tenant('organization', 10);  // organization/10
-$tenant = new Tenant('project', 44);       // project/44
-$tenant = new Tenant('workspace', 3);      // workspace/3
+$tenant = new Tenant('organization', 10);
+$consents->findAllBySession($tenant->type, $tenant->id, $sessionId);
 ```
-
-Data from one tenant is **never** accessible by another tenant. The repository queries always filter by `(tenant_type, tenant_id)`.
 
 ---
 
@@ -202,15 +232,15 @@ Data from one tenant is **never** accessible by another tenant. The repository q
 
 ### Types (ConsentType enum)
 
-| Value | Enum Case | Description |
-|-------|-----------|-------------|
-| `ad_storage` | `ConsentType::AD_STORAGE` | Ad-related storage |
-| `analytics_storage` | `ConsentType::ANALYTICS_STORAGE` | Analytics cookies |
-| `ad_user_data` | `ConsentType::AD_USER_DATA` | Ad-related user data |
-| `ad_personalization` | `ConsentType::AD_PERSONALIZATION` | Ad personalization |
-| `functionality_storage` | `ConsentType::FUNCTIONALITY_STORAGE` | Functional cookies |
-| `security_storage` | `ConsentType::SECURITY_STORAGE` | Security cookies |
-| `personalization_storage` | `ConsentType::PERSONALIZATION_STORAGE` | Personalization cookies |
+| Value | Enum Case |
+|-------|-----------|
+| `ad_storage` | `ConsentType::AD_STORAGE` |
+| `analytics_storage` | `ConsentType::ANALYTICS_STORAGE` |
+| `ad_user_data` | `ConsentType::AD_USER_DATA` |
+| `ad_personalization` | `ConsentType::AD_PERSONALIZATION` |
+| `functionality_storage` | `ConsentType::FUNCTIONALITY_STORAGE` |
+| `security_storage` | `ConsentType::SECURITY_STORAGE` |
+| `personalization_storage` | `ConsentType::PERSONALIZATION_STORAGE` |
 
 ### Status (ConsentStatus enum)
 
@@ -234,38 +264,35 @@ Data from one tenant is **never** accessible by another tenant. The repository q
 
 ### Setup
 
-In production, replace `InMemory*` repositories with your framework's database implementations (Doctrine, Eloquent, etc.).
+Resolve the managers through `CmpModels` or via dependency injection:
 
 ```php
-use Marktic\CMP\ConsentLogs\Repository\InMemoryConsentLogRepository;
 use Marktic\CMP\Consents\Actions\RecordConsent;
-use Marktic\CMP\Consents\Repository\InMemoryConsentRepository;
+use Marktic\CMP\Utility\CmpModels;
 
-$consentRepo = new InMemoryConsentRepository();
-$logRepo     = new InMemoryConsentLogRepository();
-$record      = new RecordConsent($consentRepo, $logRepo);
+$consents    = CmpModels::consents();
+$consentLogs = CmpModels::consentLogs();
+$record      = new RecordConsent();
 ```
 
 ### Recording Consent
 
 ```php
-use Marktic\CMP\Base\Tenant;
 use Marktic\CMP\Consents\Enums\ConsentSource;
 
-$tenant = new Tenant('organization', 10);
-
-$record->execute(
-    tenant:    $tenant,
+$record->handle(
+    tenant:    'organization',
+    tenantId:  10,
     sessionId: 'sess_abc123',
     userId:    'user_42',          // null for anonymous
     consents: [
-        'ad_storage'             => 'granted',
-        'analytics_storage'      => 'granted',
-        'ad_user_data'           => 'denied',
-        'ad_personalization'     => 'denied',
-        'functionality_storage'  => 'granted',
-        'security_storage'       => 'granted',
-        'personalization_storage'=> 'denied',
+        'ad_storage'              => 'granted',
+        'analytics_storage'       => 'granted',
+        'ad_user_data'            => 'denied',
+        'ad_personalization'      => 'denied',
+        'functionality_storage'   => 'granted',
+        'security_storage'        => 'granted',
+        'personalization_storage' => 'denied',
     ],
     source:    ConsentSource::FRONTEND,
     ipAddress: '192.0.2.1',
@@ -283,16 +310,16 @@ use Marktic\CMP\Consents\Actions\GetAllConsentsForSession;
 use Marktic\CMP\Consents\Enums\ConsentType;
 
 // Get a single consent
-$getConsent = new GetConsent($consentRepo);
-$consent = $getConsent->execute($tenant, 'sess_abc123', ConsentType::ANALYTICS_STORAGE);
+$getConsent = new GetConsent();
+$consent = $getConsent->handle('organization', 10, 'sess_abc123', ConsentType::ANALYTICS_STORAGE);
 
 if ($consent !== null && $consent->isGranted()) {
     // analytics is allowed
 }
 
 // Get all consents for a session
-$getAll = new GetAllConsentsForSession($consentRepo);
-$consents = $getAll->execute($tenant, 'sess_abc123');
+$getAll = new GetAllConsentsForSession();
+$consents = $getAll->handle('organization', 10, 'sess_abc123');
 ```
 
 ### Using ConsentChecker
@@ -301,15 +328,16 @@ $consents = $getAll->execute($tenant, 'sess_abc123');
 
 ```php
 use Marktic\CMP\Consents\Enums\ConsentType;
+use Marktic\CMP\Utility\CmpModels;
 use Marktic\CMP\Utility\ConsentChecker;
 
-$checker = new ConsentChecker($consentRepo, $tenant, 'sess_abc123');
+$checker = new ConsentChecker(CmpModels::consents(), 'organization', 10, 'sess_abc123');
 
 // Enum-based check
 $checker->isGranted(ConsentType::ANALYTICS_STORAGE); // true / false
-$checker->isDenied(ConsentType::AD_STORAGE);         // true / false (false if not recorded)
+$checker->isDenied(ConsentType::AD_STORAGE);         // true / false
 
-// String-based check (useful when the type comes from config/request)
+// String-based check
 $checker->hasConsent('analytics_storage');            // true / false
 
 // Get all recorded consents as a map
@@ -362,13 +390,9 @@ class ConsentController
     public function update(): JsonResponse
     {
         $result = $this->handleConsentUpdate($this->recordConsent);
-
         $statusCode = $result['status'] === 'ok' ? 200 : 422;
-
         return new JsonResponse($result, $statusCode);
     }
-
-    // --- Bridge methods ---
 
     protected function resolveTenantType(): ?string
     {
@@ -387,45 +411,31 @@ class ConsentController
             ?? $this->request->header('X-Session-Id');
     }
 
-    protected function resolveUserId(): ?string
-    {
-        return auth()->id();
-    }
+    protected function resolveUserId(): ?string { return auth()->id(); }
 
-    protected function resolveIpAddress(): ?string
-    {
-        return $this->request->ip();
-    }
+    protected function resolveIpAddress(): ?string { return $this->request->ip(); }
 
-    protected function resolveUserAgent(): ?string
-    {
-        return $this->request->userAgent();
-    }
+    protected function resolveUserAgent(): ?string { return $this->request->userAgent(); }
 
-    protected function resolveConsents(): array
-    {
-        return $this->request->input('consent', []);
-    }
+    protected function resolveConsents(): array { return $this->request->input('consent', []); }
 }
 ```
 
-### Success response
+---
 
-```json
-{
-  "status": "ok",
-  "message": "Consent recorded successfully."
-}
+## Running Migrations
+
+Migrations are standard Phinx files located in `database/migrations/`. When using a framework that integrates with `CmpServiceProvider`, migrations run automatically if enabled in config.
+
+To run manually via Phinx CLI:
+
+```bash
+vendor/bin/phinx migrate --configuration=phinx.php
 ```
 
-### Error response
-
-```json
-{
-  "status": "error",
-  "errors": "Missing or empty X-Tenant-Type header."
-}
-```
+The two tables created are:
+- `mkt_cmp_consents` — current consent state
+- `mkt_cmp_consent_logs` — audit log
 
 ---
 
@@ -433,33 +443,8 @@ class ConsentController
 
 ```bash
 composer install
-composer test
-# or directly:
 vendor/bin/phpunit
 ```
-
-Test coverage includes:
-
-- Consent recording (new and update)
-- Consent updates with correct state transitions
-- Audit log creation on new and changed consent
-- Audit log NOT created when consent is unchanged
-- Multi-tenant isolation (same session, different tenants)
-- Different tenant type isolation
-- Session isolation (same tenant, different sessions)
-- `ConsentChecker` — `isGranted`, `isDenied`, `hasConsent`, `getAll`
-- `Tenant` value object validation
-
----
-
-## Inspiration
-
-This package was designed with inspiration from the following open-source projects:
-
-- [jostkleigrewe/cookie-consent-bundle](https://github.com/jostkleigrewe/cookie-consent-bundle)
-- [wireboard/laravel-cmp](https://github.com/wireboard/laravel-cmp)
-- [vallonic/consent-studio-laravel](https://github.com/vallonic/consent-studio-laravel)
-- [68publishers/consent-management-platform](https://github.com/68publishers/consent-management-platform)
 
 ---
 

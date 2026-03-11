@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace Marktic\CMP\Consents\Actions;
 
-use Marktic\CMP\Base\Tenant;
 use Marktic\CMP\Consents\Models\Consent;
-use Marktic\CMP\Consents\Repository\ConsentRepositoryInterface;
+use Nip\Records\Collections\Collection;
 
 /**
  * Retrieves all current consent states for a given session.
  */
-class GetAllConsentsForSession
+class GetAllConsentsForSession extends AbstractAction
 {
-    public function __construct(
-        private readonly ConsentRepositoryInterface $repository,
-    ) {}
-
     /**
-     * @return Consent[]
+     * @return Consent[]|Collection
      */
-    public function execute(
-        Tenant $tenant,
+    public function handle(
+        string $tenant,
+        int $tenantId,
         string $sessionId,
-    ): array {
-        return $this->repository->findAllBySession($tenant, $sessionId);
+    ): array|Collection {
+        return $this->getRepository()->findAllBySession($tenant, $tenantId, $sessionId);
     }
 }

@@ -19,15 +19,15 @@
         }
     ],
     "require": {
-        "php": "^8.3",
-        "bytic/actions": "^1.0|^2.0",
+        "ext-json": "*",
+        "bytic/package-base": "^1.0",
+        "bytic/actions": "dev-main|^1.0|^2.0",
         "bytic/migrations": "~0.13",
         "bytic/orm": "^0.9|^1.0|^2.0",
-        "bytic/orm-behaviors": "^0.9|^1.0|^2.0",
-        "bytic/package-base": "^1.0",
-        "ramsey/uuid": "^4.7"
+        "bytic/orm-behaviors": "^0.9|^1.0|^2.0"
     },
     "require-dev": {
+        "bytic/phpqatools": "^1.0",
         "phpunit/phpunit": "^11.0"
     },
     "autoload": {
@@ -46,9 +46,12 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
-            "composer/package-versions-deprecated": true
+            "phpstan/extension-installer": true,
+            "ergebnis/composer-normalize": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "bytic/phpqatools": true
         }
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true
 }

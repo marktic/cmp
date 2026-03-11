@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Marktic\CMP\Utility;
 
-use Marktic\CMP\Base\Tenant;
 use Marktic\CMP\Consents\Enums\ConsentStatus;
 use Marktic\CMP\Consents\Enums\ConsentType;
-use Marktic\CMP\Consents\Repository\ConsentRepositoryInterface;
+use Marktic\CMP\Consents\Models\Consents;
 
 /**
  * Provides a convenient API to query consent permissions for a specific session.
  *
  * Usage:
  *
- *   $checker = new ConsentChecker($repository, $tenant, $sessionId);
+ *   $checker = new ConsentChecker($consents, 'organization', 10, $sessionId);
  *   $checker->isGranted(ConsentType::ANALYTICS_STORAGE);
  *   $checker->hasConsent('analytics_storage');
  */
 class ConsentChecker
 {
     public function __construct(
-        private readonly ConsentRepositoryInterface $repository,
-        private readonly Tenant $tenant,
+        private readonly Consents $consents,
+        private readonly string $tenant,
+        private readonly int $tenantId,
         private readonly string $sessionId,
     ) {}
 
@@ -31,7 +31,7 @@ class ConsentChecker
      */
     public function isGranted(ConsentType $type): bool
     {
-        $consent = $this->repository->findBySessionAndType($this->tenant, $this->sessionId, $type);
+        $consent = $this->consents->findBySessionAndType($this->tenant, $this->tenantId, $this->sessionId, $type);
 
         return $consent !== null && $consent->getConsentStatus() === ConsentStatus::GRANTED;
     }
@@ -44,7 +44,7 @@ class ConsentChecker
      */
     public function isDenied(ConsentType $type): bool
     {
-        $consent = $this->repository->findBySessionAndType($this->tenant, $this->sessionId, $type);
+        $consent = $this->consents->findBySessionAndType($this->tenant, $this->tenantId, $this->sessionId, $type);
 
         return $consent !== null && $consent->getConsentStatus() === ConsentStatus::DENIED;
     }
@@ -66,7 +66,7 @@ class ConsentChecker
      */
     public function getAll(): array
     {
-        $consents = $this->repository->findAllBySession($this->tenant, $this->sessionId);
+        $consents = $this->consents->findAllBySession($this->tenant, $this->tenantId, $this->sessionId);
 
         $result = [];
 

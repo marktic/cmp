@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Marktic\CMP\Http\Trait;
 
 use InvalidArgumentException;
-use Marktic\CMP\Base\Tenant;
 use Marktic\CMP\Consents\Actions\RecordConsent;
 use Marktic\CMP\Consents\Enums\ConsentSource;
 
@@ -79,10 +78,9 @@ trait ConsentApiControllerTrait
                 throw new InvalidArgumentException('Missing or empty "consent" payload.');
             }
 
-            $tenant = new Tenant($tenantType, $tenantId);
-
-            $recordConsent->execute(
-                tenant: $tenant,
+            $recordConsent->handle(
+                tenant: $tenantType,
+                tenantId: $tenantId,
                 sessionId: $sessionId,
                 userId: $userId,
                 consents: $consents,
