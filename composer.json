@@ -1,0 +1,49 @@
+{
+    "name": "marktic/cmp",
+    "description": "Server-side Consent Mode management system for SaaS applications. Records, audits and queries user consent for Google Consent Mode categories in multi-tenant environments.",
+    "type": "library",
+    "keywords": [
+        "consent",
+        "consent-mode",
+        "google-consent-mode",
+        "gdpr",
+        "saas",
+        "multi-tenant"
+    ],
+    "homepage": "https://github.com/marktic/cmp",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marktic",
+            "homepage": "https://github.com/marktic"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "ramsey/uuid": "^4.7"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Marktic\\CMP\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Marktic\\CMP\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
