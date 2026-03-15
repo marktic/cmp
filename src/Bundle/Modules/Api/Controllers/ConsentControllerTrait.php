@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Marktic\Cmp\Http\Trait;
+namespace Marktic\Cmp\Bundle\Modules\Api\Controllers;
 
 use InvalidArgumentException;
 use Marktic\Cmp\Consents\Actions\RecordConsent;
@@ -42,7 +42,7 @@ use Marktic\Cmp\Users\Actions\FindOrCreateUser;
  *     }
  *   }
  */
-trait ConsentApiControllerTrait
+trait ConsentControllerTrait
 {
     /**
      * Handle a POST /consent request.
@@ -52,7 +52,7 @@ trait ConsentApiControllerTrait
      *
      * @return array{status: string, message: string}|array{status: string, errors: mixed}
      */
-    public function handleConsentUpdate(RecordConsent $recordConsent): array
+    public function record(RecordConsent $recordConsent): array
     {
         try {
             $tenantType = $this->resolveTenantType();
