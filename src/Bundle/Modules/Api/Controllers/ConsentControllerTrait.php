@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Marktic\Cmp\Bundle\Modules\Api\Controllers;
 
 use InvalidArgumentException;
+use Marktic\Cmp\Base\Tenant;
 use Marktic\Cmp\Consents\Actions\RecordConsent;
 use Marktic\Cmp\Consents\Dto\ConsentData;
 use Marktic\Cmp\Consents\Enums\ConsentSource;
@@ -20,18 +21,28 @@ use Marktic\Cmp\Users\Actions\FindOrCreateUser;
  *
  *   class ConsentController
  *   {
- *       use ConsentApiControllerTrait;
+ *       use ConsentControllerTrait;
  *
- *       public function __construct(private readonly RecordConsent $recordConsent) {}
+ *       protected function getCmpTenant(): Tenant
+ *       {
+ *           return new Tenant(
+ *               type: $this->request->header('X-Tenant-Type'),
+ *               id:   (int) $this->request->header('X-Tenant-Id'),
+ *           );
+ *       }
  *
- *       // Implement the abstract methods for your framework.
+ *       protected function getCmpUser(): ?object
+ *       {
+ *           return auth()->user(); // object with ->name and ->id
+ *       }
+ *
+ *       protected function resolveConsents(): array
+ *       {
+ *           return $this->request->input('consent', []);
+ *       }
  *   }
  *
  * POST /consent
- *
- * Headers:
- *   X-Tenant-Type: organization
- *   X-Tenant-Id:   10
  *
  * Body (JSON):
  *   {
@@ -47,54 +58,53 @@ trait ConsentControllerTrait
     /**
      * Handle a POST /consent request.
      *
+     * Creates ConsentData from the request POST payload, resolves the tenant
+     * via getCmpTenant() and the user via getCmpUser(), then records the consent.
+     *
      * Returns an array that should be encoded as a JSON response by the
      * concrete controller using its framework's response utilities.
      *
      * @return array{status: string, message: string}|array{status: string, errors: mixed}
      */
-    public function record(RecordConsent $recordConsent): array
+    public function record(): array
     {
         try {
-            $tenantType = $this->resolveTenantType();
-            $tenantId = $this->resolveTenantId();
-            $source = $this->resolveConsentSource();
+            $cmpTenant = $this->getCmpTenant();
+            $tenantName = $cmpTenant->type;
+            $tenantId = $cmpTenant->id;
+
             $consentsPayload = $this->resolveConsents();
-
-            if ($tenantType === null || $tenantType === '') {
-                throw new InvalidArgumentException('Missing or empty X-Tenant-Type header.');
-            }
-
-            if ($tenantId === null || $tenantId <= 0) {
-                throw new InvalidArgumentException('Missing or invalid X-Tenant-Id header. Must be a positive integer.');
-            }
 
             if (empty($consentsPayload)) {
                 throw new InvalidArgumentException('Missing or empty "consent" payload.');
             }
 
             $consentData = ConsentData::createFromPayload($consentsPayload);
-            $consentData->tenant = $tenantType;
+            $consentData->tenant = $tenantName;
             $consentData->tenantId = $tenantId;
 
-            $userFinder = new FindOrCreateUser($tenantType, $tenantId);
+            $userFinder = new FindOrCreateUser($tenantName, $tenantId);
 
             $request = $this->resolveRequest();
             if ($request !== null) {
                 $userFinder = $userFinder->withRequest($request);
             }
 
-            $userId = $this->resolveUserId();
-            if ($userId !== null && $userId !== '') {
-                $userFinder = $userFinder->withUser($userId);
+            $cmpUser = $this->getCmpUser();
+            if ($cmpUser !== null && isset($cmpUser->id)) {
+                $userId = (string) $cmpUser->id;
+                if ($userId !== '') {
+                    $userFinder = $userFinder->withUser($userId);
+                }
             }
 
             $user = $userFinder->find();
 
-            $recordConsent->handle(
+            (new RecordConsent())->handle(
                 user: $user,
                 consentData: $consentData,
                 request: $request,
-                source: $source,
+                source: $this->resolveConsentSource(),
             );
 
             return ['status' => 'ok', 'message' => 'Consent recorded successfully.'];
@@ -108,19 +118,20 @@ trait ConsentControllerTrait
     // -------------------------------------------------------------------------
 
     /**
-     * Return the value of the X-Tenant-Type header (or equivalent route param).
+     * Return the CMP tenant for the current request.
+     *
+     * The tenant's type (name) and id are used to scope consent records.
      */
-    abstract protected function resolveTenantType(): ?string;
+    abstract protected function getCmpTenant(): Tenant;
 
     /**
-     * Return the integer value of the X-Tenant-Id header (or equivalent route param).
+     * Return the CMP user for the current request, or null for anonymous requests.
+     *
+     * The returned object should expose a non-null, non-empty `id` property
+     * (string or integer) that identifies the user as an external user identifier.
+     * Optionally it may expose a `name` property for display purposes.
      */
-    abstract protected function resolveTenantId(): ?int;
-
-    /**
-     * Return the authenticated user's ID, or null for anonymous requests.
-     */
-    abstract protected function resolveUserId(): ?string;
+    abstract protected function getCmpUser(): ?object;
 
     /**
      * Return the current request object, or null if not available.
@@ -142,7 +153,7 @@ trait ConsentControllerTrait
     }
 
     /**
-     * Return the parsed consent map from the request body.
+     * Return the parsed consent map from the request POST payload.
      *
      * Expected format: ['ad_storage' => 'granted', 'analytics_storage' => 'denied', ...]
      *
