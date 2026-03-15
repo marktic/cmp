@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Tests\Unit\Consents\Models;
 
-use Marktic\Cmp\Consents\Enums\ConsentSource;
 use Marktic\Cmp\Consents\Enums\ConsentStatus;
 use Marktic\Cmp\Consents\Enums\ConsentType;
 use Marktic\Cmp\Consents\Models\Consent;
@@ -15,14 +14,12 @@ class ConsentTest extends TestCase
     private function makeConsent(
         string $consentType = 'analytics_storage',
         string $consentValue = 'granted',
-        string $tenant = 'organization',
-        int $tenantId = 10,
+        int $userId = 1,
+        ?string $context = null,
     ): Consent {
         $consent = new Consent();
-        $consent->tenant = $tenant;
-        $consent->tenant_id = $tenantId;
-        $consent->session_id = 'sess-abc';
-        $consent->user_id = null;
+        $consent->user_id = $userId;
+        $consent->context = $context;
         $consent->consent_type = $consentType;
         $consent->consent_value = $consentValue;
         return $consent;
@@ -51,12 +48,20 @@ class ConsentTest extends TestCase
         $this->assertFalse($denied->isGranted());
     }
 
-    public function testTenantFields(): void
+    public function testUserIdField(): void
     {
-        $consent = $this->makeConsent(tenant: 'project', tenantId: 42);
+        $consent = $this->makeConsent(userId: 42);
 
-        $this->assertSame('project', $consent->tenant);
-        $this->assertSame(42, $consent->tenant_id);
+        $this->assertSame(42, $consent->user_id);
+    }
+
+    public function testContextField(): void
+    {
+        $consent = $this->makeConsent(context: 'checkout');
+        $this->assertSame('checkout', $consent->context);
+
+        $noContext = $this->makeConsent(context: null);
+        $this->assertNull($noContext->context);
     }
 
     public function testAllConsentTypes(): void

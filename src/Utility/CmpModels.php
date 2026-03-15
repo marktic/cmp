@@ -8,6 +8,7 @@ use ByTIC\PackageBase\Utility\ModelFinder;
 use Marktic\Cmp\CmpServiceProvider;
 use Marktic\Cmp\ConsentLogs\Models\ConsentLogs;
 use Marktic\Cmp\Consents\Models\Consents;
+use Marktic\Cmp\Users\Models\Users;
 use Nip\Records\RecordManager;
 
 /**
@@ -17,6 +18,7 @@ class CmpModels extends ModelFinder
 {
     public const CONSENTS = 'consents';
     public const CONSENT_LOGS = 'consent_logs';
+    public const USERS = 'users';
 
     public static function consents(): Consents|RecordManager
     {
@@ -36,6 +38,16 @@ class CmpModels extends ModelFinder
     public static function consentLogsClass(): string
     {
         return static::getModelsClass(self::CONSENT_LOGS, ConsentLogs::class);
+    }
+
+    public static function users(): Users|RecordManager
+    {
+        return static::getModels(self::USERS, Users::class);
+    }
+
+    public static function usersClass(): string
+    {
+        return static::getModelsClass(self::USERS, Users::class);
     }
 
     protected static function packageName(): string

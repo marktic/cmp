@@ -8,16 +8,12 @@ use Marktic\Cmp\Consents\Enums\ConsentType;
 use Marktic\Cmp\Consents\Models\Consent;
 
 /**
- * Retrieves the current consent state for a specific session and consent type.
+ * Retrieves the current consent state for a specific user and consent type.
  */
 class GetConsent extends AbstractAction
 {
-    public function handle(
-        string $tenant,
-        int $tenantId,
-        string $sessionId,
-        ConsentType $type,
-    ): ?Consent {
-        return $this->getRepository()->findBySessionAndType($tenant, $tenantId, $sessionId, $type);
+    public function handle(int $userId, ConsentType $type): ?Consent
+    {
+        return $this->getRepository()->findByUserAndType($userId, $type);
     }
 }
