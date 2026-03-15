@@ -6,7 +6,9 @@ namespace Marktic\Cmp\Http\Trait;
 
 use InvalidArgumentException;
 use Marktic\Cmp\Consents\Actions\RecordConsent;
+use Marktic\Cmp\Consents\Dto\ConsentData;
 use Marktic\Cmp\Consents\Enums\ConsentSource;
+use Marktic\Cmp\Users\Actions\FindOrCreateUser;
 
 /**
  * Reusable trait for framework API controllers that handle consent updates.
@@ -55,12 +57,8 @@ trait ConsentApiControllerTrait
         try {
             $tenantType = $this->resolveTenantType();
             $tenantId = $this->resolveTenantId();
-            $sessionId = $this->resolveSessionId();
-            $userId = $this->resolveUserId();
             $source = $this->resolveConsentSource();
-            $ipAddress = $this->resolveIpAddress();
-            $userAgent = $this->resolveUserAgent();
-            $consents = $this->resolveConsents();
+            $consentsPayload = $this->resolveConsents();
 
             if ($tenantType === null || $tenantType === '') {
                 throw new InvalidArgumentException('Missing or empty X-Tenant-Type header.');
@@ -70,23 +68,33 @@ trait ConsentApiControllerTrait
                 throw new InvalidArgumentException('Missing or invalid X-Tenant-Id header. Must be a positive integer.');
             }
 
-            if ($sessionId === null || $sessionId === '') {
-                throw new InvalidArgumentException('Missing session ID. Provide it via a cookie or X-Session-Id header.');
-            }
-
-            if (empty($consents)) {
+            if (empty($consentsPayload)) {
                 throw new InvalidArgumentException('Missing or empty "consent" payload.');
             }
 
+            $consentData = ConsentData::createFromPayload($consentsPayload);
+            $consentData->tenant = $tenantType;
+            $consentData->tenantId = $tenantId;
+
+            $userFinder = new FindOrCreateUser($tenantType, $tenantId);
+
+            $request = $this->resolveRequest();
+            if ($request !== null) {
+                $userFinder = $userFinder->withRequest($request);
+            }
+
+            $userId = $this->resolveUserId();
+            if ($userId !== null && $userId !== '') {
+                $userFinder = $userFinder->withUser($userId);
+            }
+
+            $user = $userFinder->find();
+
             $recordConsent->handle(
-                tenant: $tenantType,
-                tenantId: $tenantId,
-                sessionId: $sessionId,
-                userId: $userId,
-                consents: $consents,
+                user: $user,
+                consentData: $consentData,
+                request: $request,
                 source: $source,
-                ipAddress: $ipAddress,
-                userAgent: $userAgent,
             );
 
             return ['status' => 'ok', 'message' => 'Consent recorded successfully.'];
@@ -110,14 +118,19 @@ trait ConsentApiControllerTrait
     abstract protected function resolveTenantId(): ?int;
 
     /**
-     * Return the current session ID (from cookie, header, or route).
-     */
-    abstract protected function resolveSessionId(): ?string;
-
-    /**
      * Return the authenticated user's ID, or null for anonymous requests.
      */
     abstract protected function resolveUserId(): ?string;
+
+    /**
+     * Return the current request object, or null if not available.
+     *
+     * When provided, it is used to extract session ID, IP address and User-Agent.
+     */
+    protected function resolveRequest(): ?object
+    {
+        return null;
+    }
 
     /**
      * Return the source of the consent update.
@@ -127,16 +140,6 @@ trait ConsentApiControllerTrait
     {
         return ConsentSource::API;
     }
-
-    /**
-     * Return the client IP address, or null if not available.
-     */
-    abstract protected function resolveIpAddress(): ?string;
-
-    /**
-     * Return the User-Agent string, or null if not available.
-     */
-    abstract protected function resolveUserAgent(): ?string;
 
     /**
      * Return the parsed consent map from the request body.

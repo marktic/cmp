@@ -9,11 +9,11 @@ use Marktic\Cmp\Consents\Enums\ConsentType;
 use Marktic\Cmp\Consents\Models\Consents;
 
 /**
- * Provides a convenient API to query consent permissions for a specific session.
+ * Provides a convenient API to query consent permissions for a specific user.
  *
  * Usage:
  *
- *   $checker = new ConsentChecker($consents, 'organization', 10, $sessionId);
+ *   $checker = new ConsentChecker($consents, $userId);
  *   $checker->isGranted(ConsentType::ANALYTICS_STORAGE);
  *   $checker->hasConsent('analytics_storage');
  */
@@ -21,9 +21,7 @@ class ConsentChecker
 {
     public function __construct(
         private readonly Consents $consents,
-        private readonly string $tenant,
-        private readonly int $tenantId,
-        private readonly string $sessionId,
+        private readonly int $userId,
     ) {}
 
     /**
@@ -31,7 +29,7 @@ class ConsentChecker
      */
     public function isGranted(ConsentType $type): bool
     {
-        $consent = $this->consents->findBySessionAndType($this->tenant, $this->tenantId, $this->sessionId, $type);
+        $consent = $this->consents->findByUserAndType($this->userId, $type);
 
         return $consent !== null && $consent->getConsentStatus() === ConsentStatus::GRANTED;
     }
@@ -44,7 +42,7 @@ class ConsentChecker
      */
     public function isDenied(ConsentType $type): bool
     {
-        $consent = $this->consents->findBySessionAndType($this->tenant, $this->tenantId, $this->sessionId, $type);
+        $consent = $this->consents->findByUserAndType($this->userId, $type);
 
         return $consent !== null && $consent->getConsentStatus() === ConsentStatus::DENIED;
     }
@@ -66,7 +64,7 @@ class ConsentChecker
      */
     public function getAll(): array
     {
-        $consents = $this->consents->findAllBySession($this->tenant, $this->tenantId, $this->sessionId);
+        $consents = $this->consents->findAllByUser($this->userId);
 
         $result = [];
 

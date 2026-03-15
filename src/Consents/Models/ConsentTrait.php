@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Consents\Models;
 
-use Marktic\Cmp\Base\Models\HasTenant\HasTenantRecord;
 use Marktic\Cmp\Consents\Enums\ConsentStatus;
 use Marktic\Cmp\Consents\Enums\ConsentType;
 
 trait ConsentTrait
 {
-    use HasTenantRecord;
-
-    public string $session_id;
-    public ?string $user_id;
+    public int|string|null $user_id;
+    public ?string $context;
     public string $consent_type;
     public string $consent_value;
     public string $created_at;

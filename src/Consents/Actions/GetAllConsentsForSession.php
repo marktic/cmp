@@ -8,18 +8,15 @@ use Marktic\Cmp\Consents\Models\Consent;
 use Nip\Records\Collections\Collection;
 
 /**
- * Retrieves all current consent states for a given session.
+ * Retrieves all current consent states for a given user.
  */
 class GetAllConsentsForSession extends AbstractAction
 {
     /**
      * @return Consent[]|Collection
      */
-    public function handle(
-        string $tenant,
-        int $tenantId,
-        string $sessionId,
-    ): array|Collection {
-        return $this->getRepository()->findAllBySession($tenant, $tenantId, $sessionId);
+    public function handle(int $userId): array|Collection
+    {
+        return $this->getRepository()->findAllByUser($userId);
     }
 }
