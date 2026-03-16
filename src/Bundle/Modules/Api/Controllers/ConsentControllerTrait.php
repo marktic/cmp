@@ -66,7 +66,7 @@ trait ConsentControllerTrait
      *
      * @return array{status: string, message: string}|array{status: string, errors: mixed}
      */
-    public function record(): array
+    protected function doRecord(): array
     {
         try {
             $consentsPayload = $this->resolveConsents();
@@ -155,7 +155,7 @@ trait ConsentControllerTrait
      */
     protected function resolveConsents(): array
     {
-        $consents = $this->resolveRequest()->query('consent', []);
+        $consents = $this->resolveRequest()->request->get('consent');
         if (is_string($consents)) {
             $consents = json_decode($consents, true);
         }

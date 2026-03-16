@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\ConsentLogs\Models;
 
-use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableManagerTrait;
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableTrait;
 use Marktic\Cmp\Consents\Enums\ConsentSource;
 
 trait ConsentLogTrait
 {
-    use TimestampableManagerTrait;
+    use TimestampableTrait;
 
     public ?int $user_id;
     public string $session_id;

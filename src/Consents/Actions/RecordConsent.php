@@ -73,14 +73,12 @@ class RecordConsent extends AbstractAction
             }
         }
 
-        if (!empty($updates)) {
             $logPayload = [
                 'original_payload'  => $consentData->payload,
                 'consents_updates'  => $updates,
             ];
 
             (new RecordConsentLog())->handle($user, $request, $logPayload, $source);
-        }
     }
 
     private function createConsentRecord(

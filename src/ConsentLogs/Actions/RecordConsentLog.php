@@ -43,7 +43,7 @@ class RecordConsentLog extends AbstractAction
 
         /** @var ConsentLog $log */
         $log = $repository->getNewRecord([
-            'user_id'    => $user->id,
+            'user_id'    => intval($user->id),
             'session_id' => $user->getSessionId() ?? '',
             'payload'    => $encodedPayload,
             'source'     => $source->value,
