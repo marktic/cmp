@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Consents\Models;
 
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableManagerTrait;
 use Marktic\Cmp\Consents\Enums\ConsentType;
 use Marktic\Cmp\Utility\PackageConfig;
 use Nip\Records\Collections\Collection;
 
 trait ConsentsTrait
 {
+    use TimestampableManagerTrait;
     /**
      * Find a consent record by user ID and consent type.
      */

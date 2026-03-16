@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Users\Models;
 
-use Marktic\Cmp\Base\Models\HasTenant\HasTenantRepository;
+use Marktic\Cmp\Base\Models\Behaviours\HasTenant\HasTenantRepository;
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableManagerTrait;
 use Marktic\Cmp\Utility\PackageConfig;
 use Nip\Records\Collections\Collection;
 
 trait UsersTrait
 {
     use HasTenantRepository;
+    use TimestampableManagerTrait;
 
     /**
      * Find a user record by tenant and session ID.

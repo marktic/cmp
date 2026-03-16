@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Marktic\Cmp\Bundle\Modules\Api\Controllers;
 
 use InvalidArgumentException;
-use Marktic\Cmp\Base\Tenant;
 use Marktic\Cmp\Consents\Actions\RecordConsent;
 use Marktic\Cmp\Consents\Dto\ConsentData;
 use Marktic\Cmp\Consents\Enums\ConsentSource;
 use Marktic\Cmp\Users\Actions\FindOrCreateUser;
+use Nip\Http\Request;
 
 /**
  * Reusable trait for framework API controllers that handle consent updates.
@@ -69,32 +69,25 @@ trait ConsentControllerTrait
     public function record(): array
     {
         try {
-            $cmpTenant = $this->getCmpTenant();
-            $tenantName = $cmpTenant->type;
-            $tenantId = $cmpTenant->id;
-
             $consentsPayload = $this->resolveConsents();
+            $request = $this->resolveRequest();
 
             if (empty($consentsPayload)) {
                 throw new InvalidArgumentException('Missing or empty "consent" payload.');
             }
 
-            $consentData = ConsentData::createFromPayload($consentsPayload);
-            $consentData->tenant = $tenantName;
-            $consentData->tenantId = $tenantId;
+            $consentData = ConsentData
+                ::createFromPayload($consentsPayload)
+                ->withTenant($this->getCmpTenant());
 
-            $userFinder = new FindOrCreateUser($tenantName, $tenantId);
-
-            $request = $this->resolveRequest();
-            if ($request !== null) {
-                $userFinder = $userFinder->withRequest($request);
-            }
+            $userFinder = (new FindOrCreateUser($consentData->tenant, $consentData->tenantId))
+                ->withRequest($request);
 
             $cmpUser = $this->getCmpUser();
             if ($cmpUser !== null && isset($cmpUser->id)) {
-                $userId = (string) $cmpUser->id;
+                $userId = (string)$cmpUser->id;
                 if ($userId !== '') {
-                    $userFinder = $userFinder->withUser($userId);
+                    $userFinder->withUser($userId);
                 }
             }
 
@@ -122,7 +115,7 @@ trait ConsentControllerTrait
      *
      * The tenant's type (name) and id are used to scope consent records.
      */
-    abstract protected function getCmpTenant(): Tenant;
+    abstract protected function getCmpTenant(): ?object;
 
     /**
      * Return the CMP user for the current request, or null for anonymous requests.
@@ -137,6 +130,7 @@ trait ConsentControllerTrait
      * Return the current request object, or null if not available.
      *
      * When provided, it is used to extract session ID, IP address and User-Agent.
+     * @return object|null|Request
      */
     protected function resolveRequest(): ?object
     {
@@ -159,5 +153,12 @@ trait ConsentControllerTrait
      *
      * @return array<string, string>
      */
-    abstract protected function resolveConsents(): array;
+    protected function resolveConsents(): array
+    {
+        $consents = $this->resolveRequest()->query('consent', []);
+        if (is_string($consents)) {
+            $consents = json_decode($consents, true);
+        }
+        return is_array($consents) ? $consents : [];
+    }
 }

@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Consents\Models;
 
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableTrait;
 use Marktic\Cmp\Consents\Enums\ConsentStatus;
 use Marktic\Cmp\Consents\Enums\ConsentType;
 
 trait ConsentTrait
 {
+    use TimestampableTrait;
+
     public int|string|null $user_id;
     public ?string $context;
     public string $consent_type;
     public string $consent_value;
-    public string $created_at;
-    public string $updated_at;
 
     public function getConsentType(): ConsentType
     {

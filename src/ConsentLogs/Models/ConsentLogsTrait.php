@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\ConsentLogs\Models;
 
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableManagerTrait;
 use Marktic\Cmp\Utility\PackageConfig;
 use Nip\Records\Collections\Collection;
 
 trait ConsentLogsTrait
 {
+    use TimestampableManagerTrait;
+
     /**
      * Return all log entries for a given user.
      *

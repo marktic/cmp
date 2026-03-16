@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\ConsentLogs\Models;
 
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableManagerTrait;
 use Marktic\Cmp\Consents\Enums\ConsentSource;
 
 trait ConsentLogTrait
 {
+    use TimestampableManagerTrait;
+
     public ?int $user_id;
     public string $session_id;
     public string $payload;
     public string $source;
     public ?string $ip_address;
     public ?string $user_agent;
-    public string $created_at;
 
     public function getUserId(): ?int
     {
-        return $this->user_id !== null ? (int) $this->user_id : null;
+        return $this->user_id !== null ? (int)$this->user_id : null;
     }
 
     public function getSessionId(): string

@@ -49,7 +49,7 @@ class ConsentData
      * Build a ConsentData instance from a raw payload array and store the
      * original payload for audit logging.
      *
-     * @param array<string, string> $payload  Keys are ConsentType values.
+     * @param array<string, string> $payload Keys are ConsentType values.
      */
     public static function createFromPayload(array $payload): self
     {
@@ -57,12 +57,12 @@ class ConsentData
         $dto->payload = $payload;
 
         $map = [
-            ConsentType::AD_STORAGE->value            => 'adStorage',
-            ConsentType::ANALYTICS_STORAGE->value     => 'analyticsStorage',
-            ConsentType::AD_USER_DATA->value          => 'adUserData',
-            ConsentType::AD_PERSONALIZATION->value    => 'adPersonalization',
+            ConsentType::AD_STORAGE->value => 'adStorage',
+            ConsentType::ANALYTICS_STORAGE->value => 'analyticsStorage',
+            ConsentType::AD_USER_DATA->value => 'adUserData',
+            ConsentType::AD_PERSONALIZATION->value => 'adPersonalization',
             ConsentType::FUNCTIONALITY_STORAGE->value => 'functionalityStorage',
-            ConsentType::SECURITY_STORAGE->value      => 'securityStorage',
+            ConsentType::SECURITY_STORAGE->value => 'securityStorage',
             ConsentType::PERSONALIZATION_STORAGE->value => 'personalizationStorage',
         ];
 
@@ -75,6 +75,17 @@ class ConsentData
         return $dto;
     }
 
+    public function withTenant(string|object $tenant, int $tenantId = null): self
+    {
+        if (is_object($tenant)) {
+            $tenantId = intval($tenant->id);
+            $tenant = $tenant->getManager()->getMorphName();
+        }
+        $this->tenant = $tenant;
+        $this->tenantId = $tenantId;
+        return $this;
+    }
+
     /**
      * Return only the non-null consents as an array keyed by ConsentType value.
      *
@@ -83,12 +94,12 @@ class ConsentData
     public function getConsents(): array
     {
         $map = [
-            ConsentType::AD_STORAGE->value              => $this->adStorage,
-            ConsentType::ANALYTICS_STORAGE->value       => $this->analyticsStorage,
-            ConsentType::AD_USER_DATA->value            => $this->adUserData,
-            ConsentType::AD_PERSONALIZATION->value      => $this->adPersonalization,
-            ConsentType::FUNCTIONALITY_STORAGE->value   => $this->functionalityStorage,
-            ConsentType::SECURITY_STORAGE->value        => $this->securityStorage,
+            ConsentType::AD_STORAGE->value => $this->adStorage,
+            ConsentType::ANALYTICS_STORAGE->value => $this->analyticsStorage,
+            ConsentType::AD_USER_DATA->value => $this->adUserData,
+            ConsentType::AD_PERSONALIZATION->value => $this->adPersonalization,
+            ConsentType::FUNCTIONALITY_STORAGE->value => $this->functionalityStorage,
+            ConsentType::SECURITY_STORAGE->value => $this->securityStorage,
             ConsentType::PERSONALIZATION_STORAGE->value => $this->personalizationStorage,
         ];
 

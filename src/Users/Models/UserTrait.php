@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Marktic\Cmp\Users\Models;
 
-use Marktic\Cmp\Base\Models\HasTenant\HasTenantRecord;
+use Marktic\Cmp\Base\Models\Behaviours\HasTenant\HasTenantRecord;
+use Marktic\Cmp\Base\Models\Behaviours\Timestampable\TimestampableTrait;
 
 trait UserTrait
 {
     use HasTenantRecord;
+    use TimestampableTrait;
 
-    public ?string $session_id;
-    public ?string $user_id;
-    public string $created_at;
-    public string $updated_at;
+    public ?string $session_id = null;
+    public ?string $user_id = null;
 
     public function getSessionId(): ?string
     {

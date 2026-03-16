@@ -44,34 +44,34 @@ class FindOrCreateUser extends AbstractAction
      */
     public function withRequest(object $request): static
     {
-        $clone = clone $this;
+        $this->sessionId = session_id() ?: null;
 
         if (method_exists($request, 'getSession')) {
             try {
                 $session = $request->getSession();
                 if ($session !== null && method_exists($session, 'getId')) {
-                    $clone->sessionId = (string) $session->getId();
+                    $this->sessionId = (string) $session->getId();
                 }
             } catch (\Throwable) {
                 // session not started or not available
             }
         }
 
-        if (($clone->sessionId === null || $clone->sessionId === '') && isset($request->headers)) {
+        if (($this->sessionId === null || $this->sessionId === '') && isset($request->headers)) {
             $headerSessionId = $request->headers->get('X-Session-Id');
             if ($headerSessionId !== null && $headerSessionId !== '') {
-                $clone->sessionId = (string) $headerSessionId;
+                $this->sessionId = (string) $headerSessionId;
             }
         }
 
         if (isset($request->headers)) {
             $headerUserId = $request->headers->get('X-User-Id');
             if ($headerUserId !== null && $headerUserId !== '') {
-                $clone->userId = (string) $headerUserId;
+                $this->userId = (string) $headerUserId;
             }
         }
 
-        return $clone;
+        return $this;
     }
 
     /**
@@ -80,14 +80,11 @@ class FindOrCreateUser extends AbstractAction
      * Accepts either a string user_id or a User model instance (whose user_id
      * field will be used).
      */
-    public function withUser(string|User $user): static
+    public function withUser(object|string|int $user): static
     {
-        $clone = clone $this;
-        $clone->userId = $user instanceof User
-            ? $user->getExternalUserId()
-            : $user;
+        $this->userId = is_object($user) ? $user->id : $user;
 
-        return $clone;
+        return $this;
     }
 
     /**

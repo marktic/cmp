@@ -8,8 +8,8 @@ use Marktic\Cmp\Utility\PackageConfig;
 
 trait HasDatabaseConnectionTrait
 {
-    public function getDbConnection(): ?string
+    public function newDbConnection()
     {
-        return PackageConfig::databaseConnection() ?: null;
+        return app('db')->connection(PackageConfig::databaseConnection());
     }
 }
